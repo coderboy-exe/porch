@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { isSameMonth, toDate } from 'date-fns';
+import { format, isSameMonth, toDate } from 'date-fns';
 import { MembershipService } from 'src/membership/membership.service';
 import { MemberWithRemainingDays, MemberWithUserAndAddOns } from 'src/membership/memberships.types';
 import { sendEmail } from 'src/utils/emailHelper';
@@ -35,13 +35,13 @@ export class SchedulerService {
     }
 
     @OnEvent('newUser.reminder', { async: true })
-    private async sendNewMemberReminder(membership: MemberWithUserAndAddOns) {
+    async sendNewMemberReminder(membership: MemberWithUserAndAddOns) {
         const totalAddOnMonthlyAmount = membership.addOns.reduce((total, addOn) => total + addOn.monthlyAmount, 0);
         const totalAmount = membership.totalAmount + totalAddOnMonthlyAmount;
-        const msg = `Kindly remember your upcoming payment due on ${toDate(membership.dueDate)}. Membership Type: ${membership.type}.\n\nAnnual Fee: $${membership.totalAmount}.\n\nAddOn Service Total Monthly Amount: $${totalAddOnMonthlyAmount}.\n\nTotal Amount: $${totalAmount}\n`;
+        const formattedDueDate = format(new Date(membership.dueDate), 'yyyy-MM-dd');
+        const msg = `Kindly remember your upcoming payment due on ${formattedDueDate}. Membership Type: ${membership.type}.\n\nAnnual Fee: $${membership.totalAmount}.\n\nAddOn Service Total Monthly Amount: $${totalAddOnMonthlyAmount}.\n\nTotal Amount: $${totalAmount}\n`;
         const emailRes = await sendEmail(
-            // "usottah@gmail.com", membership.user.email, 
-            process.env.EMAIL_USERNAME, "ucheottah98@gmail.com", 
+            "usottah@gmail.com", membership.user.email, 
             `Fitness+ Membership Reminder - ${membership.type}`,
             msg, `${membership.user.firstName} ${membership.user.lastName}`,
             "Fitness+ Team"
@@ -49,7 +49,7 @@ export class SchedulerService {
     }
     
     @OnEvent('existingUser.reminder', { async: true })
-    private async sendExistingMemberReminder(membership: MemberWithUserAndAddOns) {
+    async sendExistingMemberReminder(membership: MemberWithUserAndAddOns) {
         const addOnsDetails = membership.addOns.map(addOn => ({
             name: addOn.name,
             monthlyAmount: addOn.monthlyAmount,
@@ -57,13 +57,12 @@ export class SchedulerService {
         }));
 
         const totalAddOnMonthlyAmount = addOnsDetails.reduce((total, addOn) => total + addOn.monthlyAmount, 0);
-        const addOnsMessage = addOnsDetails.map(addOn => `- ${addOn.name}: $${addOn.monthlyAmount}. Due on ${toDate(addOn.dueDate)}`).join('\n');
+        const addOnsMessage = addOnsDetails.map(addOn => `- ${addOn.name}: $${addOn.monthlyAmount}. Due on ${format(new Date(addOn.dueDate), 'yyyy-MM-dd')}`).join('\n');
         
         const msg = `AddOn Services:\n${addOnsMessage}\n\nTotal Amount: $${totalAddOnMonthlyAmount}.`;
 
         const emailRes = await sendEmail(
-            // "usottah@gmail.com", membership.user.email, 
-            process.env.EMAIL_USERNAME, "ucheottah98@gmail.com", 
+            "usottah@gmail.com", membership.user.email, 
             `Fitness+ Membership Reminder - ${membership.type}`,
             msg, `${membership.user.firstName} ${membership.user.lastName}`,
             "Fitness+ Team"
