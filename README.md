@@ -10,7 +10,7 @@ Porch+ Assessment, built with [Nest](https://github.com/nestjs/nest) framework &
 
 ```bash
 # clone the repository
-$ git clone https://github.com/coderboy-exe/porch
+$ git clone https://github.com/coderboy-exe/porch.git
 ```
 
 ```bash
